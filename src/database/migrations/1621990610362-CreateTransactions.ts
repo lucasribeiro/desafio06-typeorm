@@ -39,7 +39,12 @@ export class CreateTransactions1621990610362 implements MigrationInterface {
                         name: 'created_at',
                         type: 'timestamp',
                         default: 'now()',
-                    },
+                    },    
+                    {
+                        name: 'updated_at',
+                        type: 'timestamp',
+                        default: 'now()',
+                    }                
                 ]
             })
         );

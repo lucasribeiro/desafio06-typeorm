@@ -1,14 +1,16 @@
 import { Router } from 'express';
 import { getCustomRepository } from 'typeorm';
 import Transaction from '../models/Transaction';
+import multer from 'multer';
+import uploadConfig from '../config/upload';
 
 import TransactionsRepository from '../repositories/TransactionsRepository';
 import CreateTransactionService from '../services/CreateTransactionService';
- import DeleteTransactionService from '../services/DeleteTransactionService';
-// import ImportTransactionsService from '../services/ImportTransactionsService';
+import DeleteTransactionService from '../services/DeleteTransactionService';
+import ImportTransactionsService from '../services/ImportTransactionsService';
 
 const transactionsRouter = Router();
-
+const upload = multer(uploadConfig);
 interface Balance {
   income: number;
   outcome: number;
@@ -61,8 +63,15 @@ transactionsRouter.delete('/:id', async (request, response) => {
 
 });
 
-transactionsRouter.post('/import', async (request, response) => {
-  // TODO
+transactionsRouter.post('/import',  upload.single('filecsv'), async (request, response) => {
+  
+  const filename = request.file.filename;
+
+  const importTransaction = new ImportTransactionsService();
+
+  importTransaction.execute(filename);
+
+  return response.json({ok: true});
 });
 
 export default transactionsRouter;

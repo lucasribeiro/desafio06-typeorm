@@ -15,15 +15,7 @@ interface Request {
 class CreateTransactionService {
   public async execute({title, value, type, category}: Request): Promise<Transaction> {
     const transactionRepository = getCustomRepository(TransactionsRepository);
-    const categoryRepository = getRepository(Category);
-
-    if (type === 'outcome'){      
-      const balance = transactionRepository.getBalance();
-      const total = (await balance).outcome + value;
-      if (total > (await balance).income) {
-        throw Error('Valor não disponivel');
-      }  
-    }
+    const categoryRepository = getRepository(Category);    
 
     const checkCategoryExists = await categoryRepository.findOne({ where: { title: category } });
 

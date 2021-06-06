@@ -12,25 +12,33 @@ class ImportTransactionsService {
 
      fs.createReadStream(path.join(uploadConfig.directory, csvFileName))
       .pipe(csv())
-      .on('data', (Transaction) => {
+      .on('data', (Transaction: Transaction) => {
         console.log(Transaction);
-        const transaction = Transaction as Transaction;
 
-        console.log(transaction.value);
+        let strTransaction = JSON.stringify(Transaction);        
+        strTransaction = strTransaction.replace(' value', 'value');
+        strTransaction = strTransaction.replace(' type', 'type');
+        strTransaction = strTransaction.replace(' category', 'category');
+        
+        if (strTransaction.length > 2)
+        {
+          const transaction = JSON.parse(strTransaction);
 
-        const title = transaction.title;
-        const value = transaction.value;
-        const type = transaction.type;
-        const category = transaction.category;
+          console.log(Transaction.value);
 
-        const createTransaction = new CreateTransactionService();
-       const newtransaction =  createTransaction.execute({
-          title, 
-          value,
-          type,
-          category
-        });
+          const title = transaction.title;
+          const value = transaction.value.trimLeft();
+          const type = transaction.type.trimLeft();
+          const category = transaction.category.trimLeft();
 
+          const createTransaction = new CreateTransactionService();
+          createTransaction.execute({
+            title, 
+            value,
+            type,
+            category
+          });
+          }
       })
       .on('end', () => {
         console.log('CSV file successfully processed');

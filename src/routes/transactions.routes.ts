@@ -25,7 +25,7 @@ interface Response {
 transactionsRouter.get('/', async (request, response) => {
   
   const transactionsRepository = getCustomRepository(TransactionsRepository);
-  const transactions = await transactionsRepository.find({ relations: ["category"] });
+  const transactions = await transactionsRepository.find();
   const balance = await transactionsRepository.getBalance();
 
   const resposta: Response = {transactions: transactions, balance: balance};
@@ -35,19 +35,23 @@ transactionsRouter.get('/', async (request, response) => {
 });
 
 transactionsRouter.post('/', async (request, response) => {
+  try {
+    const { title, value, type, category } = request.body;
+    
+    const createTransaction = new CreateTransactionService();
+    
+    const transaction =  await createTransaction.execute({
+      title, 
+      value,
+      type,
+      category
+    });
 
-  const { title, value, type, category } = request.body;
-  
-  const createTransaction = new CreateTransactionService();
-  
-  const transaction =  await createTransaction.execute({
-    title, 
-    value,
-    type,
-    category
-  });
+    return response.json(transaction);
 
-  return response.json(transaction);
+} catch (err) {
+  return response.status(400).json({ error: err.message });
+}
   
 });
 

@@ -35,23 +35,19 @@ transactionsRouter.get('/', async (request, response) => {
 });
 
 transactionsRouter.post('/', async (request, response) => {
-  try {
-    const { title, value, type, category } = request.body;
-    
-    const createTransaction = new CreateTransactionService();
-    
-    const transaction =  await createTransaction.execute({
-      title, 
-      value,
-      type,
-      category
-    });
 
-    return response.json(transaction);
+  const { title, value, type, category } = request.body;
+    
+  const createTransaction = new CreateTransactionService();
+  
+  const transaction =  await createTransaction.execute({
+    title, 
+    value,
+    type,
+    category
+  });
 
-} catch (err) {
-  return response.status(400).json({ error: err.message });
-}
+  return response.json(transaction);
   
 });
 
@@ -73,9 +69,9 @@ transactionsRouter.post('/import',  upload.single('filecsv'), async (request, re
 
   const importTransaction = new ImportTransactionsService();
 
-  importTransaction.execute(filename);
+  const transactions = importTransaction.execute(filename);
 
-  return response.json({ok: true});
+  return response.json(transactions);
 });
 
 export default transactionsRouter;

@@ -15,7 +15,15 @@ interface Request {
 class CreateTransactionService {
   public async execute({title, value, type, category}: Request): Promise<Transaction> {
     const transactionRepository = getCustomRepository(TransactionsRepository);
-    const categoryRepository = getRepository(Category);    
+    const categoryRepository = getRepository(Category);
+
+    if (type === 'outcome'){      
+      const balance = transactionRepository.getBalance();
+      const total = (await balance).outcome + value;
+      if (total > (await balance).income) {
+        throw new AppError('Valor não disponivel');
+      }  
+    }
 
     const checkCategoryExists = await categoryRepository.findOne({ where: { title: category } });
 
@@ -25,13 +33,13 @@ class CreateTransactionService {
       category_id = checkCategoryExists.id;
     }
     else {
-      const newCategory = categoryRepository.create({title: category});
+      const newCategory = await categoryRepository.create({title: category});
       await categoryRepository.save(newCategory);
       
       category_id = newCategory.id;
     }
 
-    const transaction = transactionRepository.create({
+    const transaction = await transactionRepository.create({
             title,
             value,
             type,

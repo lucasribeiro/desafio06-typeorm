@@ -13,6 +13,11 @@ interface Request {
   type: 'income' | 'outcome';
   category: string;
 }
+
+interface CategoryAux {
+  category: string;
+  category_id: string;
+}
 class ImportTransactionsService {
   public async execute(csvFileName: string): Promise<Transaction[]> {
 
@@ -45,13 +50,7 @@ class ImportTransactionsService {
           const category = transaction.category.trim();
           
           const request: Request = {title: title, value: value, type: type, category: category}
-          /* const transactionCreated = await createTransaction.execute({
-            title, 
-            value,
-            type,
-            category
-          }); */ 
-
+         
           transactions.push(request);
 
           console.log(request);                 
@@ -60,50 +59,47 @@ class ImportTransactionsService {
       
       await new Promise(resolve => parseCSV.on('end', resolve));
       
-     // parseCSV.on('end', () => {        
-      //  console.log('CSV file successfully processed');        
       await fs.promises.unlink(path.join(uploadConfig.directory, csvFileName));
 
       const response = this.SaveTransactions(transactions);
-      return response;
-                
-      //})  
-      
+      return response;      
       
     }
 
     private async SaveTransactions(transactions: Request[]): Promise<Transaction[]> {
       
       const response: Transaction[] = [];
-      const createTransaction = new CreateTransactionService();
       const transactionRepository = getCustomRepository(TransactionsRepository);
       const categoryRepository = getRepository(Category);  
 
-      try {
-        const promises= transactions.map(async trans =>  {
-          
+      // Salva os novos Categories
+      const categoryList: CategoryAux[] = [];
+      const categoriesAdded: string[] = [];
 
+      await Promise.all(transactions.map(async trans =>  {  
+        if (!categoriesAdded.some(ct => ct === trans.category)) {         
+          categoriesAdded.push(trans.category);
+          const checkCategoryExists = await categoryRepository.findOne({ where: { title: trans.category } });
+          if (!checkCategoryExists){    
+            const newCategory = await categoryRepository.create({title: trans.category});
+            await categoryRepository.save(newCategory);       
+            categoryList.push( { category: newCategory.title, category_id: newCategory.id} );                
+          }
+          else {
+            categoryList.push( { category: checkCategoryExists.title, category_id: checkCategoryExists.id} );            
+          }
+        }        
+      }));
+
+      // Salva as transações
+      try {
+        await Promise.all(transactions.map(async trans =>  {
+          
         const title = trans.title;
         const value = trans.value;
         const type = trans.type;
-        const category = trans.category;  
+        let category_id = await categoryList.find(cat => cat.category === trans.category)?.category_id;
         
-
-        const checkCategoryExists = await categoryRepository.findOne({ where: { title: category } });
-        await this.sleep(2000);
-
-        let category_id: string = '';
-
-        if (checkCategoryExists){
-          category_id = checkCategoryExists.id;
-        }
-        else {
-          const newCategory = await categoryRepository.create({title: category});
-          await categoryRepository.save(newCategory);
-          
-          category_id = newCategory.id;
-        }
-
         const transaction = await transactionRepository.create({
                 title,
                 value,
@@ -113,16 +109,10 @@ class ImportTransactionsService {
 
         await transactionRepository.save(transaction);
         
-       // await this.sleep(2000);
+       //await this.sleep(2000);
 
-        console.log(title);
-        console.log(transaction);
-        //response.push(transactionCreated); 
 
-      });
-
-      await Promise.all(promises);
-      console.log('criados');
+      }));
 
     }
     catch (err) {
